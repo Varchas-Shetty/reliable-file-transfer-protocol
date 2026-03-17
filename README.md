@@ -17,7 +17,6 @@ UDP provides fast communication but does not guarantee delivery, ordering, or du
 - Acknowledgement (ACK) based reliability
 - Retransmission of lost packets
 - Packet loss simulation for testing
-- File reconstruction on the server
 - SSL/TLS secured control communication
 - Performance testing support
 
@@ -26,7 +25,7 @@ UDP provides fast communication but does not guarantee delivery, ordering, or du
 ## System Architecture
 
 ```
-Client                          Server
+Server                          Client
   |                                |
   |-------- UDP Data Packets ----->|
   |                                |
@@ -38,11 +37,10 @@ Client                          Server
 
 Flow:
 
-1. Client splits the file into chunks.
+1. Server splits the file into chunks.
 2. Each chunk is sent as a packet over UDP.
-3. Server sends an acknowledgement (ACK).
-4. If ACK is not received, the client retransmits the packet.
-5. Server reconstructs the file from received chunks.
+3. Client sends an acknowledgement (ACK).
+4. If ACK is not received, the server retransmits the packet.
 
 ---
 
@@ -51,22 +49,47 @@ Flow:
 ```
 project-root/
 │
-├── client.py          # Client-side program
-├── server.py          # Server-side program
-├── protocol.py        # Packet format and parsing
-├── utils.py           # Helper functions (chunking, file handling)
+├── client/              # Client-side (connects to server, sends requests)
+│   ├── client.c         # main client logic (connect, send, receive)
+│   ├── client_ssl.c     # SSL/TLS wrapper for client
+│   ├── client_utils.c   # helper functions
+│   └── include/
+│       └── client.h     # declarations
 │
-├── ssl/               # SSL/TLS implementation
-│   ├── client_ssl.py
-│   └── server_ssl.py
+├── server/              # Server-side (          sockets + concurrency)
+│   ├── server.c         # main server (socket, bind, listen, accept)
+│   ├── server_ssl.c     # SSL integration on server
+│   ├── connection_handler.c  # handles each client
+│   ├── thread_pool.c    # multi-client handling
+│   └── include/
+│       └── server.h     # declarations
 │
-├── test_files/        # Files used for testing transfer
+├── common/              # Shared between client & server
+│   ├── protocol.c       # message handling logic
+│   ├── protocol.h       # message format definitions
+│   ├── constants.h      # ports, buffer sizes
+│   └── utils.c          # shared helpers
 │
-├── docs/              # Documentation
+├── security/            # SSL/TLS setup
+│   ├── ssl_setup.c      # SSL initialization
+│   ├── ssl_setup.h
+│   └── certs/           # certificates
+│       ├── server.crt
+│       ├── server.key
+│       └── ca.crt
+│
+├── tests/               # Performance + load testing
+│   ├── multi_client_test.c
+│   ├── latency_test.c
+│   └── load_test.c
+│
+├── docs/                # Documentation
+│   ├── protocol.md
 │   ├── architecture.md
 │   └── performance.md
 │
-└── README.md
+├── Makefile             # compile everything
+└── README.md            # project overview
 ```
 
 ---
@@ -121,23 +144,26 @@ The client will begin sending the file in chunks.
 
 ```
 Server listening on port 5000
-Received chunk 0
-ACK sent for chunk 0
-Received chunk 1
-ACK dropped intentionally for chunk 1
-Received chunk 1
-ACK sent for chunk 1
-File saved as received_file
+Received file request from client
+Sending chunk 0
+ACK received for chunk 0
+Sending chunk 1
+ACK intentionally dropped for testing
+Resending chunk 1
+ACK received for chunk 1
+File transfer complete
 ```
 
 ### Client
 
 ```
-Sending file: testfile.txt
-ACK received for 0
-Resending chunk 1
-ACK received for 1
-File transfer complete
+Requesting file: testfile.txt
+Received chunk 0
+ACK sent for chunk 0
+Received chunk 1
+Resending ACK for chunk 1
+Received chunk 1
+File saved as received_file
 ```
 
 ---
@@ -147,12 +173,12 @@ File transfer complete
 Each UDP packet contains:
 
 ```
-| Sequence Number | Data Length | Data |
+| Type | Sequence Number | Data Size | Data |
 ```
-
-- **Sequence Number** → identifies packet order
-- **Data Length** → size of chunk
-- **Data** → file bytes
+- **Type** → identifies the kind of message (request, data, acknowledgment)
+- **Sequence Number** → sequence number used to maintain packet order and detect missing packets
+- **Data Size** → number of valid bytes in data
+- **Data** → holds either a file chunk or a filename
 
 ---
 
@@ -161,10 +187,9 @@ Each UDP packet contains:
 The protocol ensures reliability using:
 
 1. **Sequence numbers** to track packets
-2. **Acknowledgements (ACK)** from server
+2. **Acknowledgements (ACK)** from client
 3. **Timeout detection**
 4. **Packet retransmission**
-5. **File reconstruction on server**
 
 ---
 
@@ -196,7 +221,7 @@ Packet loss testing confirms that retransmission successfully restores missing p
 ## Team Members
 
 - **Varchas Shetty** – SSL Implementation & Security
-- **Vaishnavi** – 
+- **Vaishnavi Bandaru** – UDP File Transfer Server with concurrency, reliable stop-and-wait protocol, and packet retransmission.
 - **Ujwal** – 
 
 ---
