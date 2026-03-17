@@ -1,54 +1,203 @@
-# reliable-file-transfer-protocol
-Problem Statement :Reliable File Transfer Protocol over UDP.    This project implements a reliable file transfer system over UDP using socket programming.  The system ensures reliable delivery through chunk-based transmission, acknowledgements,  retransmission of lost packets, and optional SSL-secured control communication.
-Features :
-• Chunk-based file transfer
-• ACK-based reliability
-• Packet loss simulation
-• Retransmission mechanism
-• File reconstruction
-• SSL/TLS secure control channel
+# Reliable File Transfer Protocol over UDP
 
-PROJECT STRUCTURE
+## Overview
+This project implements a **Reliable File Transfer Protocol over UDP** using socket programming. Since UDP does not guarantee reliability, this system introduces mechanisms such as chunk-based transmission, acknowledgements, retransmission of lost packets, and optional SSL/TLS-secured control communication.
+
+The system ensures that files are transferred correctly even when packets are lost or delayed in the network.
+
+---
+
+## Problem Statement
+UDP provides fast communication but does not guarantee delivery, ordering, or duplication control. This project builds a **custom reliability layer on top of UDP** to ensure safe and complete file transfer between a client and server.
+
+---
+
+## Features
+- Chunk-based file transfer
+- Acknowledgement (ACK) based reliability
+- Retransmission of lost packets
+- Packet loss simulation for testing
+- File reconstruction on the server
+- SSL/TLS secured control communication
+- Performance testing support
+
+---
+
+## System Architecture
+
+```
+Client                          Server
+  |                                |
+  |-------- UDP Data Packets ----->|
+  |                                |
+  |<----------- ACK ---------------|
+  |                                |
+  |---- Retransmit if ACK lost --->|
+  |                                |
+```
+
+Flow:
+
+1. Client splits the file into chunks.
+2. Each chunk is sent as a packet over UDP.
+3. Server sends an acknowledgement (ACK).
+4. If ACK is not received, the client retransmits the packet.
+5. Server reconstructs the file from received chunks.
+
+---
+
+## Project Structure
+
+```
 project-root/
 │
-├── client/              # Client-side (connects to server, sends requests)
-│   ├── client.c         # main client logic (connect, send, receive)
-│   ├── client_ssl.c     # SSL/TLS wrapper for client
-│   ├── client_utils.c   # helper functions
-│   └── include/
-│       └── client.h     # declarations
+├── client.py          # Client-side program
+├── server.py          # Server-side program
+├── protocol.py        # Packet format and parsing
+├── utils.py           # Helper functions (chunking, file handling)
 │
-├── server/              # Server-side (YOU → sockets + concurrency)
-│   ├── server.c         # main server (socket, bind, listen, accept)
-│   ├── server_ssl.c     # SSL integration on server
-│   ├── connection_handler.c  # handles each client
-│   ├── thread_pool.c    # multi-client handling
-│   └── include/
-│       └── server.h     # declarations
+├── ssl/               # SSL/TLS implementation
+│   ├── client_ssl.py
+│   └── server_ssl.py
 │
-├── common/              # Shared between client & server
-│   ├── protocol.c       # message handling logic
-│   ├── protocol.h       # message format definitions
-│   ├── constants.h      # ports, buffer sizes
-│   └── utils.c          # shared helpers
+├── test_files/        # Files used for testing transfer
 │
-├── security/            # SSL/TLS setup
-│   ├── ssl_setup.c      # SSL initialization
-│   ├── ssl_setup.h
-│   └── certs/           # certificates
-│       ├── server.crt
-│       ├── server.key
-│       └── ca.crt
-│
-├── tests/               # Performance + load testing
-│   ├── multi_client_test.c
-│   ├── latency_test.c
-│   └── load_test.c
-│
-├── docs/                # Documentation
-│   ├── protocol.md
+├── docs/              # Documentation
 │   ├── architecture.md
 │   └── performance.md
 │
-├── Makefile             # compile everything
-└── README.md            # project overview
+└── README.md
+```
+
+---
+
+## Technologies Used
+- C
+- Python
+- Socket Programming
+- UDP Protocol
+- SSL/TLS (Python ssl library)
+- GitHub for version control
+
+---
+
+## How to Run the Project
+
+### 1. Clone the repository
+
+```
+git clone https://github.com/YOUR_USERNAME/reliable-file-transfer-protocol.git
+```
+
+```
+cd reliable-file-transfer-protocol
+```
+
+---
+
+### 2. Start the Server
+
+```
+python server.py
+```
+
+Server will start listening for incoming packets.
+
+---
+
+### 3. Run the Client
+
+```
+python client.py
+```
+
+The client will begin sending the file in chunks.
+
+---
+
+## Example Output
+
+### Server
+
+```
+Server listening on port 5000
+Received chunk 0
+ACK sent for chunk 0
+Received chunk 1
+ACK dropped intentionally for chunk 1
+Received chunk 1
+ACK sent for chunk 1
+File saved as received_file
+```
+
+### Client
+
+```
+Sending file: testfile.txt
+ACK received for 0
+Resending chunk 1
+ACK received for 1
+File transfer complete
+```
+
+---
+
+## Packet Structure
+
+Each UDP packet contains:
+
+```
+| Sequence Number | Data Length | Data |
+```
+
+- **Sequence Number** → identifies packet order
+- **Data Length** → size of chunk
+- **Data** → file bytes
+
+---
+
+## Reliability Mechanisms
+
+The protocol ensures reliability using:
+
+1. **Sequence numbers** to track packets
+2. **Acknowledgements (ACK)** from server
+3. **Timeout detection**
+4. **Packet retransmission**
+5. **File reconstruction on server**
+
+---
+
+## Security Implementation
+
+SSL/TLS is used to secure the **control communication channel** between the client and server.
+
+This provides:
+
+- Encryption
+- Authentication
+- Protection from man-in-the-middle attacks
+
+---
+
+## Performance Evaluation
+
+Example results:
+
+| File Size | Transfer Time | Throughput |
+|----------|---------------|-----------|
+| 1 MB | 1.2 sec | 0.83 MB/s |
+| 5 MB | 5.6 sec | 0.89 MB/s |
+
+Packet loss testing confirms that retransmission successfully restores missing packets.
+
+---
+
+## Team Members
+
+- **Varchas Shetty** – SSL Implementation & Security
+- **Vaishnavi** – 
+- **Ujwal** – 
+
+---
+
