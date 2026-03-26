@@ -1,4 +1,4 @@
-# Reliable File Transfer Protocol over UDP with SSL/TLS Security
+# Reliable File Transfer Protocol over UDP with Go-Back-N ARQ and DTLS Security
 
 ## Overview
 This project implements a Reliable File Transfer Protocol over UDP using socket programming, Go-Back-N ARQ reliability mechanisms, and DTLS-based security. Since UDP does not guarantee delivery, ordering, or duplication protection, this project adds a custom reliability layer with sequence numbers, cumulative acknowledgements, timeout-based retransmissions, sliding window transmission, and secure control communication.
